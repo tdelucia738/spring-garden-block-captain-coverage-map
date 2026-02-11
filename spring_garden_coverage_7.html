@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring Garden Block Captain Coverage - Editable</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            line-height: 1.8;
+        }
+        .legend h4 {
+            margin: 0 0 10px 0;
+        }
+        .legend-item {
+            margin: 5px 0;
+        }
+        .legend-color {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border: 1px solid #333;
+        }
+        .covered {
+            background-color: #28a745;
+        }
+        .uncovered {
+            background-color: #dc3545;
+        }
+        .info-box {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            max-width: 300px;
+        }
+        .info-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        .info-box p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .edit-controls {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+        }
+        .edit-controls button {
+            padding: 8px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .toggle-edit {
+            background-color: #007bff;
+            color: white;
+        }
+        .export-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .reset-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map centered on Spring Garden neighborhood
+        const map = L.map('map').setView([39.96450, -75.16900], 15);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Block captain data - YOUR EXACT POSITIONS
+        const blocks = [
+            {name: "1400 Fairmount", captain: null, lat: 39.96708, lng: -75.16145},
+            {name: "1500 Fairmount", captain: null, lat: 39.96716, lng: -75.16217},
+            {name: "1600 Fairmount", captain: "Alan Segel", lat: 39.96717, lng: -75.16378},
+            {name: "1700 Fairmount", captain: "Stew Keener", lat: 39.9672, lng: -75.16541},
+            {name: "1800 Fairmount", captain: "Stephanie Hu; Marcia Connolly", lat: 39.96726, lng: -75.16785},
+            {name: "1900 Fairmount", captain: null, lat: 39.96725, lng: -75.16939},
+            {name: "2000 Fairmount", captain: null, lat: 39.96729, lng: -75.17121},
+            {name: "2100 Fairmount", captain: null, lat: 39.96732, lng: -75.1729},
+            {name: "2200 Fairmount", captain: null, lat: 39.96736, lng: -75.17472},
+            {name: "2300 Fairmount", captain: null, lat: 39.9674, lng: -75.17621},
+            {name: "1500 North", captain: null, lat: 39.96598, lng: -75.1624},
+            {name: "1600 North", captain: "Donna Perkins, Beth Stanley, Phyllis Forman", lat: 39.96634, lng: -75.16473},
+            {name: "1700 North", captain: "Luke Keele", lat: 39.96648, lng: -75.16629},
+            {name: "1800 North", captain: "Rebecca ?", lat: 39.96671, lng: -75.16792},
+            {name: "1900 North", captain: "Nancy Brago; April Trissel", lat: 39.96683, lng: -75.16948},
+            {name: "2000 North", captain: "Eve Tahmincioglu", lat: 39.96689, lng: -75.17173},
+            {name: "1400 Melon", captain: null, lat: 39.96644, lng: -75.16145},
+            {name: "1600 Melon", captain: null, lat: 39.96663, lng: -75.16406},
+            {name: "1700 Melon", captain: "Kat Springer", lat: 39.96687, lng: -75.16602},
+            {name: "1400 Wallace", captain: null, lat: 39.96529, lng: -75.16165},
+            {name: "1500 Wallace", captain: null, lat: 39.96549, lng: -75.16338},
+            {name: "1600 Wallace", captain: null, lat: 39.96571, lng: -75.16477},
+            {name: "1700 Wallace", captain: "Michael Suh", lat: 39.96591, lng: -75.1665},
+            {name: "1900 Wallace", captain: "Greta Baith; Yvette Mejia", lat: 39.96627, lng: -75.16962},
+            {name: "2000 Wallace", captain: "Elinor Haider; Joan Wachlin", lat: 39.96654, lng: -75.17179},
+            {name: "2100 Wallace", captain: "Howard Horwitz", lat: 39.9667, lng: -75.17308},
+            {name: "2200 Wallace", captain: "Betsy Eveleigh", lat: 39.96686, lng: -75.17521},
+            {name: "2300 Wallace", captain: null, lat: 39.96676, lng: -75.17615},
+            {name: "1400 Mt Vernon", captain: null, lat: 39.96459, lng: -75.16182},
+            {name: "1500 Mt Vernon", captain: null, lat: 39.96481, lng: -75.16348},
+            {name: "1600 Mt Vernon", captain: null, lat: 39.96498, lng: -75.16499},
+            {name: "1700 Mt Vernon", captain: null, lat: 39.96521, lng: -75.16663},
+            {name: "1900 Mt Vernon", captain: "Russ Alexander; Henry Brann", lat: 39.96561, lng: -75.16971},
+            {name: "2000 Mt Vernon", captain: "Joe Steinberg; Jeff Doss", lat: 39.96589, lng: -75.17187},
+            {name: "2100 Mt Vernon", captain: "Audrey Schneider", lat: 39.9661, lng: -75.17319},
+            {name: "2200 Mt Vernon", captain: "Bill Holtzman; Nick Swett", lat: 39.96633, lng: -75.17507},
+            {name: "1400 Green", captain: null, lat: 39.96389, lng: -75.16191},
+            {name: "1500 Green", captain: "Melanie Grewal, Eric Vincent", lat: 39.96416, lng: -75.16365},
+            {name: "1600 Green", captain: "Marianne Donnini", lat: 39.9643, lng: -75.16522},
+            {name: "1700 Green", captain: "Patrick Boyle, Ann Corcoran", lat: 39.96456, lng: -75.16682},
+            {name: "1800 Green", captain: "Andrea (Andi) Cantor", lat: 39.96471, lng: -75.16835},
+            {name: "1900 Green", captain: null, lat: 39.96492, lng: -75.16988},
+            {name: "2000 Green", captain: "Kyle Block", lat: 39.96516, lng: -75.172},
+            {name: "2100 Green", captain: "Stephen White", lat: 39.96535, lng: -75.17336},
+            {name: "2200 Green", captain: null, lat: 39.96558, lng: -75.17508},
+            {name: "2300 Green", captain: null, lat: 39.96576, lng: -75.17664},
+            {name: "1400 Brandywine", captain: null, lat: 39.96317, lng: -75.16209},
+            {name: "1500 Brandywine", captain: null, lat: 39.96346, lng: -75.1638},
+            {name: "1600 Brandywine", captain: "Brad Jamula", lat: 39.96368, lng: -75.16536},
+            {name: "1700 Brandywine", captain: "Brad Jamula", lat: 39.96389, lng: -75.16695},
+            {name: "1800 Brandywine", captain: null, lat: 39.96406, lng: -75.16851},
+            {name: "1900 Brandywine", captain: "Mark Barbash", lat: 39.96423, lng: -75.17001},
+            {name: "2000 Brandywine", captain: null, lat: 39.96453, lng: -75.17218},
+            {name: "2100 Brandywine", captain: "Julie Busta", lat: 39.96474, lng: -75.17372},
+            {name: "2200 Brandywine", captain: "Jim Pavlock", lat: 39.96492, lng: -75.17526},
+            {name: "1400 Spring Garden", captain: null, lat: 39.96266, lng: -75.16219},
+            {name: "1500 Spring Garden", captain: "Steve White", lat: 39.96285, lng: -75.16391},
+            {name: "1600 Spring Garden", captain: "Cassidy", lat: 39.96304, lng: -75.16546},
+            {name: "1700 Spring Garden", captain: null, lat: 39.96325, lng: -75.16708},
+            {name: "1800 Spring Garden", captain: null, lat: 39.96341, lng: -75.16865},
+            {name: "1900 Spring Garden", captain: null, lat: 39.96363, lng: -75.17015},
+            {name: "2000 Spring Garden", captain: null, lat: 39.96388, lng: -75.17226},
+            {name: "2100 Spring Garden", captain: null, lat: 39.96402, lng: -75.17375},
+            {name: "2200 Spring Garden", captain: null, lat: 39.96423, lng: -75.17529},
+            {name: "2300 Spring Garden", captain: null, lat: 39.96494, lng: -75.17687},
+            {name: "15th Street - North", captain: "Barbara Wolf; Justino Navarro", lat: 39.96644, lng: -75.16228},
+            {name: "15th Street - South", captain: null, lat: 39.9638, lng: -75.16286},
+            {name: "16th Street - North", captain: "Jill Wasserman", lat: 39.96632, lng: -75.16396},
+            {name: "16th Street - South", captain: "Michelle Dunn", lat: 39.96395, lng: -75.16443},
+            {name: "17th Street - North", captain: null, lat: 39.9666, lng: -75.16556},
+            {name: "17th Street - South", captain: "Daniel Linton", lat: 39.96409, lng: -75.16609},
+            {name: "18th Street - North", captain: "Tom DeLucia", lat: 39.9657, lng: -75.1673},
+            {name: "18th Street - South", captain: null, lat: 39.96426, lng: -75.16763},
+            {name: "19th Street - North", captain: null, lat: 39.96585, lng: -75.1689},
+            {name: "19th Street - South", captain: null, lat: 39.96449, lng: -75.16919},
+            {name: "20th Street - North", captain: null, lat: 39.96604, lng: -75.1705},
+            {name: "20th Street - South", captain: null, lat: 39.96467, lng: -75.17079},
+            {name: "21st Street - North", captain: "Max Feldman", lat: 39.96629, lng: -75.17241},
+            {name: "21st Street - South", captain: null, lat: 39.96493, lng: -75.17267},
+            {name: "22nd Street - North", captain: null, lat: 39.9664, lng: -75.17394},
+            {name: "22nd Street - South", captain: null, lat: 39.9652, lng: -75.17424},
+            {name: "23rd Street - North", captain: null, lat: 39.96674, lng: -75.17554},
+            {name: "23rd Street - South", captain: null, lat: 39.96523, lng: -75.17589},
+            {name: "24th Street", captain: null, lat: 39.9665, lng: -75.17727},
+            {name: "Melon & Sydenham - 1500-1600 Melon", captain: "Elaine Petrossian, Kevin Latonick", lat: 39.9666, lng: -75.16311}
+        ];
+        
+        let editMode = false;
+        const markers = [];
+        
+        // Add markers for each block
+        blocks.forEach((block, index) => {
+            const color = block.captain ? '#28a745' : '#dc3545';
+            const icon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            });
+            
+            const marker = L.marker([block.lat, block.lng], {
+                icon: icon,
+                draggable: false
+            }).addTo(map);
+            
+            // Store reference to block data
+            marker.blockData = block;
+            marker.blockIndex = index;
+            
+            const popupContent = `
+                <div class="info-box">
+                    <h3>${block.name}</h3>
+                    ${block.captain ? 
+                        `<p><strong>Block Captain:</strong><br>${block.captain}</p>` : 
+                        `<p style="color: #dc3545;"><strong>NO COVERAGE</strong><br>Block captain needed</p>`
+                    }
+                    <p style="font-size: 11px; color: #666; margin-top: 8px;">Lat: ${block.lat.toFixed(5)}, Lng: ${block.lng.toFixed(5)}</p>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            
+            // Update coordinates when dragged
+            marker.on('dragend', function(e) {
+                const position = e.target.getLatLng();
+                blocks[marker.blockIndex].lat = position.lat;
+                blocks[marker.blockIndex].lng = position.lng;
+                
+                // Update popup with new coordinates
+                const newPopupContent = `
+                    <div class="info-box">
+                        <h3>${block.name}</h3>
+                        ${block.captain ? 
+                            `<p><strong>Block Captain:</strong><br>${block.captain}</p>` : 
+                            `<p style="color: #dc3545;"><strong>NO COVERAGE</strong><br>Block captain needed</p>`
+                        }
+                        <p style="font-size: 11px; color: #666; margin-top: 8px;">Lat: ${position.lat.toFixed(5)}, Lng: ${position.lng.toFixed(5)}</p>
+                    </div>
+                `;
+                marker.setPopupContent(newPopupContent);
+            });
+            
+            markers.push(marker);
+        });
+        
+        // Add edit controls
+        const editControls = L.control({position: 'topright'});
+        editControls.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'edit-controls');
+            div.innerHTML = `
+                <button class="toggle-edit" onclick="toggleEditMode()">
+                    🔒 Enable Editing
+                </button>
+                <br>
+                <button class="export-btn" onclick="exportCoordinates()">
+                    📥 Export Coordinates
+                </button>
+                <button class="reset-btn" onclick="resetPositions()">
+                    🔄 Reset Positions
+                </button>
+            `;
+            return div;
+        };
+        editControls.addTo(map);
+        
+        // Toggle edit mode
+        window.toggleEditMode = function() {
+            editMode = !editMode;
+            const btn = document.querySelector('.toggle-edit');
+            
+            markers.forEach(marker => {
+                marker.dragging[editMode ? 'enable' : 'disable']();
+            });
+            
+            if (editMode) {
+                btn.innerHTML = '🔓 Disable Editing';
+                btn.style.backgroundColor = '#ffc107';
+                btn.style.color = '#000';
+            } else {
+                btn.innerHTML = '🔒 Enable Editing';
+                btn.style.backgroundColor = '#007bff';
+                btn.style.color = '#fff';
+            }
+        };
+        
+        // Export coordinates as JSON
+        window.exportCoordinates = function() {
+            const data = blocks.map(block => ({
+                name: block.name,
+                captain: block.captain,
+                lat: parseFloat(block.lat.toFixed(5)),
+                lng: parseFloat(block.lng.toFixed(5))
+            }));
+            
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'block_captain_coordinates.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            alert('Coordinates exported! Check your downloads folder.');
+        };
+        
+        // Store original positions
+        const originalBlocks = JSON.parse(JSON.stringify(blocks));
+        
+        // Reset to original positions
+        window.resetPositions = function() {
+            if (confirm('Reset all markers to their original positions?')) {
+                markers.forEach((marker, index) => {
+                    const original = originalBlocks[index];
+                    marker.setLatLng([original.lat, original.lng]);
+                    blocks[index].lat = original.lat;
+                    blocks[index].lng = original.lng;
+                });
+                alert('All markers reset to original positions!');
+            }
+        };
+        
+        // Add legend
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <h4>Block Captain Coverage</h4>
+                <div class="legend-item">
+                    <span class="legend-color covered"></span>
+                    <span>Covered (has captain)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color uncovered"></span>
+                    <span>Coverage Needed</span>
+                </div>
+                <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                    Click markers for details<br>
+                    <strong>Enable editing to drag markers</strong>
+                </p>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+        
+        // Add summary info box
+        const info = L.control({position: 'topleft'});
+        info.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'info-box');
+            const covered = blocks.filter(b => b.captain).length;
+            const uncovered = blocks.filter(b => !b.captain).length;
+            div.innerHTML = `
+                <h3>Spring Garden Neighborhood</h3>
+                <p><strong>Total Blocks:</strong> ${blocks.length}</p>
+                <p><strong>Covered:</strong> ${covered} (${Math.round(covered/blocks.length*100)}%)</p>
+                <p><strong>Need Coverage:</strong> ${uncovered}</p>
+            `;
+            return div;
+        };
+        info.addTo(map);
+    </script>
+</body>
+</html>
